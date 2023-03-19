@@ -33,33 +33,30 @@ def create_master_file():
     dflist = []
     for f in flist:
         df = pd.read_csv(f)
-        df['Year'] = f[-8:-4]    
+        df['Year'] = "Y" + f[-8:-4]    
+        df['Site_Name'] = df.Site_Name.str.title().str.lstrip().str.rstrip()
         dflist.append(df)
     df = pd.concat(dflist)
     df.to_csv(outfn)
     return df 
 
 def main():
-    pattern = "/home/fergal/data/politics/stusuppnet/farms/*.csv"
-    flist = sorted(glob(pattern))
-    #Remove 2021, which is garbled
-    flist = list(filter(lambda x: x[-8:-4] != "2021", flist))
 
-    dflist = []
-    for f in flist:
-        print()
-        print(f)
-        df = pd.read_csv(f)
-        df['Year'] = f[-8:-4]    
-        df = df.head(2)
-        dflist.append(df)
-    df = pd.concat(dflist)
-    return df 
+    df = pd.read_csv('farms0623.csv')
     #Check Free + Reduced == Total 
-    idx = df.Free + df.Reduced != df.Total 
+    idx = df.Free + df.Reduced != df.TotalFR
     print(df[idx])
 
+
     #Check percentage is correct 
+    idx = np.isnan(df.TotalFR)
+    print(df[idx])
+    idx = np.isnan(df.FRPercent)
+    print(df[idx])
+
+    idx = ~ np.isclose(df.TotalFR, .01*(df.Enrollment * df.FRPercent), atol=1)
+    print(df[idx])
 
     #Check each school shows up each time 
-    return df
+    #Elem <--> Elementary is the most common failing, but not the only one
+    return df.groupby('Site_Name').Site_Name.count().sort_values()
