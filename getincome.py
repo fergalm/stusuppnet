@@ -24,7 +24,7 @@ def main():
     #https://api.census.gov/data/2021/acs/acs5/groups/B19001.html
     
     mapper = {
-        'B19001_001E': 'Population',
+        'B19001_001E': 'Num_Households',
         'B19001_002E': 'Household_Inc_0k_10k',
         'B19001_003E': 'Household_Inc_10k_15k',
         'B19001_004E': 'Household_Inc_15k_20k',
@@ -68,32 +68,32 @@ def compute_alice_frac(df):
     We define ALICE as household income < 50k/yr
     """
 
-    df = df.copy()
     termA = \
-        df.Household_Inc_0k_10k + \
-        df.Household_Inc_10k_15k + \
-        df.Household_Inc_15k_20k + \
-        df.Household_Inc_20k_25k + \
-        df.Household_Inc_25k_30k + \
-        df.Household_Inc_30k_35k + \
-        df.Household_Inc_35k_40k + \
-        df.Household_Inc_40k_45k + \
-        df.Household_Inc_45k_50k 
+        df.Household_Inc_0k_10k.astype(int) + \
+        df.Household_Inc_10k_15k.astype(int) + \
+        df.Household_Inc_15k_20k.astype(int) + \
+        df.Household_Inc_20k_25k.astype(int) + \
+        df.Household_Inc_25k_30k.astype(int) + \
+        df.Household_Inc_30k_35k.astype(int) + \
+        df.Household_Inc_35k_40k.astype(int) + \
+        df.Household_Inc_40k_45k.astype(int) + \
+        df.Household_Inc_45k_50k.astype(int) 
     
     termB = \
-        df.Household_Inc_50k_60k   + \  
-        df.Household_Inc_60k_75k   + \  
-        df.Household_Inc_75k_100k  + \  
-        df.Household_Inc_100k_125k + \  
-        df.Household_Inc_125k_150k + \  
-        df.Household_Inc_150k_200k + \  
-        df.Household_Inc_200k      
+        df.Household_Inc_50k_60k.astype(int) + \
+        df.Household_Inc_60k_75k.astype(int) + \
+        df.Household_Inc_75k_100k.astype(int)  + \
+        df.Household_Inc_100k_125k.astype(int)  + \
+        df.Household_Inc_125k_150k.astype(int)  + \
+        df.Household_Inc_150k_200k.astype(int)  + \
+        df.Household_Inc_200k.astype(int)      
     
     out = pd.DataFrame()
-    out['Population'] = df.Population
+    out['Num_Household'] = df.Num_Household
     out['fips'] = df.fips 
-    out['termA'] = termA 
-    out['termB'] = termB
+    out['Num_Alice'] = termA 
+    out['Percent_Alice'] = termA / (termA + termB)
+    out['geom'] = geom
     return out 
 
 
