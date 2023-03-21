@@ -27,8 +27,8 @@ def main():
         'B19001_001E': 'Population',
         'B19001_002E': 'Household_Inc_0k_10k',
         'B19001_003E': 'Household_Inc_10k_15k',
-        'B19001_004E': 'Household_Inc_15k_25k',
-        'B19001_005E': 'Household_Inc_25k_30k',
+        'B19001_004E': 'Household_Inc_15k_20k',
+        'B19001_005E': 'Household_Inc_20k_25k',
         'B19001_006E': 'Household_Inc_25k_30k',
         'B19001_007E': 'Household_Inc_30k_35k',
         'B19001_008E': 'Household_Inc_35k_40k',
@@ -61,7 +61,39 @@ def main():
     return df
     
 
-    return geoms
+def compute_alice_frac(df):
+    """Compute fraction of population that are ALICE:
+    Asset Limited, Income Constrained, Unemployed
 
+    We define ALICE as household income < 50k/yr
+    """
+
+    df = df.copy()
+    termA = \
+        df.Household_Inc_0k_10k + \
+        df.Household_Inc_10k_15k + \
+        df.Household_Inc_15k_20k + \
+        df.Household_Inc_20k_25k + \
+        df.Household_Inc_25k_30k + \
+        df.Household_Inc_30k_35k + \
+        df.Household_Inc_35k_40k + \
+        df.Household_Inc_40k_45k + \
+        df.Household_Inc_45k_50k 
+    
+    termB = \
+        df.Household_Inc_50k_60k   + \  
+        df.Household_Inc_60k_75k   + \  
+        df.Household_Inc_75k_100k  + \  
+        df.Household_Inc_100k_125k + \  
+        df.Household_Inc_125k_150k + \  
+        df.Household_Inc_150k_200k + \  
+        df.Household_Inc_200k      
+    
+    out = pd.DataFrame()
+    out['Population'] = df.Population
+    out['fips'] = df.fips 
+    out['termA'] = termA 
+    out['termB'] = termB
+    return out 
 
 
