@@ -59,4 +59,7 @@ def main():
 
     #Check each school shows up each time 
     #Elem <--> Elementary is the most common failing, but not the only one
-    return df.groupby('Site_Name').Site_Name.count().sort_values()
+    # return df.groupby('Site_Name').Site_Name.count().sort_values()
+
+
+    return df.groupby('Site_Num').Site_Num.count().sort_values()
