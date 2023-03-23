@@ -11,8 +11,61 @@ import frmbase.meta as fmeta
 lmap = fsupport.lmap 
 
 from frmpolitics.census import CensusQuery, TigerQueryAcs
+from frmgis.geomcollect import GeomCollection
+import frmgis.get_geom as fgg 
 
 def main():
+    """Compute fraction of ALICE household in school catchment area
+
+    ALICE stands for Asset Limited, Income Constrained, and Employed.
+    For our purposes we define a household as ALICE if its census reported
+    income is <$50k/yr.
+
+    We query the census for number of households in each employment bracket,
+    for each block group, then added up all the block groups in a school district.
+    A blockgroup partially within a school district is apportioned to that 
+    school district in proportion to the fraction of its area inside the 
+    school distrct.
+
+    Note that some of the district 7 blockgroups are underweighted because 
+    some of their area is listed as being in the bay. I should tidy that up.
+    """
+
+    outfn = "alice.csv"
+    incomefile = "income.csv"
+    pattern = '/home/fergal/data/elections/shapefiles/schools/{school_type}_School_Districts.kml'
+    fmeta.save_state(outfn +".json")
+
+    sch = load_all_schools(pattern)
+
+    # bg = query_census_for_income()
+    bg = pd.read_csv(incomefile)
+    alice = compute_alice_frac(bg)
+    gc = GeomCollection(bg, 'fips')
+
+    overlap = gc.measure_overlap_with_df(sch, name_col='Name')
+    df = pd.merge(alice, overlap, left_on='fips', right_index=True)
+
+    sch['Alice_Percent'] = 0
+    for i in range(len(sch)):
+        name = sch.Name.iloc[i]
+        numer = (df[name] * df['Num_Alice']).sum()
+        denom = (df[name] * df['Num_Households']).sum()
+        sch.loc[i, 'Alice_Percent'] = 100 * numer / denom
+
+    sch.to_csv(outfn)
+    return df, sch
+
+
+def load_all_schools(pattern):
+
+    stype = "Elementary Middle High".split()
+    dflist = lmap(lambda x: fgg.load_geoms_as_df(pattern.format(school_type=x)), stype)
+    df = pd.concat(dflist)
+    return df 
+
+
+def query_census_for_income():
     """Download block-group level data on income in Baltimore County"""
 
     survey = "acs"
@@ -89,11 +142,11 @@ def compute_alice_frac(df):
         df.Household_Inc_200k.astype(int)      
     
     out = pd.DataFrame()
-    out['Num_Household'] = df.Num_Household
+    out['Num_Households'] = df.Num_Households
     out['fips'] = df.fips 
     out['Num_Alice'] = termA 
-    out['Percent_Alice'] = termA / (termA + termB)
-    out['geom'] = geom
+    out['Percent_Alice'] = 100 * termA / (termA + termB)
+    out['geom'] = df.geom
     return out 
 
 
