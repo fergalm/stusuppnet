@@ -60,7 +60,7 @@ def main():
 def load_all_schools(pattern):
 
     #stype = "Elementary Middle High".split()
-    stype  ["High"]
+    stype = ["High"]
     dflist = lmap(lambda x: fgg.load_geoms_as_df(pattern.format(school_type=x)), stype)
     df = pd.concat(dflist)
     return df 
