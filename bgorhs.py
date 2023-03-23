@@ -37,6 +37,7 @@ def main():
     plt.title("ALICE by High School")
     plt.axis(axl)
     fplots.add_watermark(loc='bottom')
+    fplots.mark_as_draft()
     plt.savefig('bgorhs_hs.png')
 
     plt.figure('bg')
@@ -48,4 +49,5 @@ def main():
     plt.title("ALICE by Block Group")    
     plt.axis(axl)
     fplots.add_watermark(loc='bottom')
+    fplots.mark_as_draft()
     plt.savefig('bgorhs_bg.png')

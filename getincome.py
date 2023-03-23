@@ -1,10 +1,5 @@
 from ipdb import set_trace as idebug 
-import matplotlib.pyplot as plt 
-from pprint import pprint 
 import pandas as pd 
-import numpy as np 
-
-from glob import glob 
 
 import frmbase.support as fsupport 
 import frmbase.meta as fmeta 
@@ -45,7 +40,7 @@ def main():
 
     overlap = gc.measure_overlap_with_df(sch, name_col='Name')
     df = pd.merge(alice, overlap, left_on='fips', right_index=True)
-
+    idebug()
     sch['Alice_Percent'] = 0
     for i in range(len(sch)):
         name = sch.Name.iloc[i]
