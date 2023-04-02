@@ -45,6 +45,7 @@ def main():
     for d in range(1,8):
         plt.clf()
         plot(schools_df, political_districts, d)
+        plt.suptitle(f"Council District {d} High Schools")
         plt.savefig(f"Council{d}_{school_type}.png")
         print(f"Figure {d} complete")
 
@@ -113,9 +114,8 @@ def plot(schools_df, political_df, district_name):
     env = district_sch_geom.GetEnvelope()
 
     plt.clf()
-    set_figure_size()
     plt.axis(env)
-
+    set_figure_size()
 
     cmap = plt.cm.YlOrRd
     fgplots.chloropleth(schools_df.geom, schools_df.Value, cmap=cmap, alpha=.1, wantCbar=False)
@@ -123,7 +123,7 @@ def plot(schools_df, political_df, district_name):
     cb.set_label("ALICE Households (%)")
     add_labels(district_sch_df)
 
-    fgplots.plot_shape(district_geom, 'k-', lw=4, zorder=+20)
+    fgplots.plot_shape(district_geom, '-', color='midnightblue', lw=4, zorder=+20)
     frmgis.roads.plot_interstate()
     fmo.drawMap(zoom_delta=-1)
     ax = plt.gca()
@@ -200,14 +200,16 @@ def set_figure_size():
     dlng = env[1] - env[0]
     dlat = env[3] - env[2] 
 
-    cb_size_inches = 4 
+    cb_size_inches = 1
     ratio = dlat/dlng 
+    # idebug()
+    print(dlng, dlat, ratio)
     if ratio > 1:
         print("gt")
         plt.gcf().set_size_inches( cb_size_inches + 10/ratio, 10)
     else:
         print("lt")
-        plt.gcf().set_size_inches( cb_size_inches + 10, 10/ratio)
+        plt.gcf().set_size_inches( cb_size_inches + 10, 10*ratio)
 
 
 def add_labels(locs):
