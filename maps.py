@@ -31,17 +31,23 @@ labels
 
 
 def main():
+    school_type = 'High'
     districtfn = '/home/fergal/data/elections/shapefiles/councildistricts/Councilmanic_Districts_2022.kml'
-    labelfn = "/home/fergal/data/elections/shapefiles/schools/Public_Schools.kml"
     schshapefn = f'/home/fergal/data/elections/shapefiles/schools/{school_type}_School_Districts.kml'
-    farmsfn = "farms0623.csv"
     alicefn = "alice_high.csv"
 
     with Timer("Loading districts"):
         political_districts = load_districts(districtfn)
 
     with Timer("Loading Schools Data"):
-        schools_df = load_alice_data(alicefn, schshapefn, masterfn)
+        schools_df = load_alice_data(alicefn, school_type)
+
+    for d in range(1,8):
+        plt.clf()
+        plot(schools_df, political_districts, d)
+        plt.savefig(f"Council{d}_{school_type}.png")
+        print(f"Figure {d} complete")
+
 
 def load(political_districts=None):
     """
@@ -67,12 +73,6 @@ def load(political_districts=None):
  
     # base_layer = load_farms_data(farmsfn, schshapefn, masterfn)
     schools_df = load_alice_data(alicefn, school_type)
-
-    for d in range(1,8):
-        plt.clf()
-        plot(schools_df, political_districts, d)
-        plt.savefig(f"Council{d}_{school_type}.png")
-        print(f"Figure {d} complete")
 
     #Find the in-district schools
     return schools_df, political_districts
@@ -128,6 +128,7 @@ def plot(schools_df, political_df, district_name):
     fmo.drawMap(zoom_delta=-1)
     ax = plt.gca()
     plt.axis('off')
+    fplots.add_watermark(loc='bottom')
 
 
 class LoadGeom(dfp.AbstractStep):
