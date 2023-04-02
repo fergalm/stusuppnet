@@ -2,21 +2,22 @@ from ipdb import set_trace as idebug
 import matplotlib.pyplot as plt 
 from pprint import pprint 
 import pandas as pd 
-import numpy as np 
 
 
-from frmgis.anygeom import AnyGeom
 from frmgis.union import union_collection
+from frmgis.anygeom import AnyGeom
 import frmgis.geomcollect as fgc 
 import frmgis.mapoverlay as fmo 
 import frmgis.plots as fgplots 
 import frmgis.get_geom as fgg 
 import frmgis.roads 
 
+from frmplots.platlabels import PlatLabel
+import frmplots.plots as fplots 
+
 from frmbase.support import npmap, lmap 
 import frmbase.dfpipeline as dfp 
 
-import matte
 """
 
 Intersect district with schools
@@ -112,82 +113,7 @@ def plot(schools_df, political_df, district_name):
     frmgis.roads.plot_interstate()
     fmo.drawMap(zoom_delta=-1)
     ax = plt.gca()
-    make_axes_locatable(ax)
     plt.axis('off')
-
-
-def set_figure_size():
-    env = plt.axis()
-    dlng = env[1] - env[0]
-    dlat = env[3] - env[2] 
-
-    cb_size_inches = 4 
-    ratio = dlat/dlng 
-    if ratio > 1:
-        print("gt")
-        plt.gcf().set_size_inches( cb_size_inches + 10/ratio, 10)
-    else:
-        print("lt")
-        plt.gcf().set_size_inches( cb_size_inches + 10, 10/ratio)
-
-
-def load_labels(labelfile):
-    pipeline = [
-        LoadGeom(labelfile),
-        dfp.SelectCol("FACILITY_N", "FACILITY_T", "MAP_LABEL", "geom"),
-        dfp.SetCol("FACILITY_N", "FACILITY_N.str.title()"),
-        dfp.SetCol("MAP_LABEL", "MAP_LABEL.str.title()"),
-    ]
-    df = dfp.runPipeline(pipeline)
-    return df 
-
-
-import frmplots.plots as fplots 
-from frmplots.platlabels import PlatLabel
-def add_labels(locs):
-    labeler = PlatLabel()
-    # bbox = {'color':'silver', 'alpha':.9}
-    effect = fplots.outline(clr='#EEEEEE', lw=4)
-    label_level = npmap(lambda x: x.Centroid().GetX(), locs.geom)
-    label_level *= -1
-    
-    
-    for geom, name, level in zip(locs.geom, locs.Name, label_level):
-        cent = geom.Centroid()
-        # fgplots.plot_shape(point, 'C0o', ms=4, zorder=20)
-        labeler.text(cent.GetX(), cent.GetY(), " " + name.title(),
-                      color='k', 
-                      path_effects=effect, 
-                      level=level, 
-                      zorder=20,
-                      ha="center",
-                      fontsize=10,
-            )
-    return labeler
-
-
-def match_to_master_geom(geom_list, master_geom):
-    master = AnyGeom(master_geom).as_geometry()
-
-    geom_list = lmap(lambda x: AnyGeom(x).as_geometry(), geom_list)
-    out = lmap(lambda x: master.Intersection(x), geom_list)
-    return out 
-
-
-def is_clockwise(shape):
-    gtype, arr = AnyGeom(shape).as_array()
-    if gtype.lower() != 'polygon':
-        raise ValueError("Not a polygon")
-    
-    #Translate to origin
-    arr = arr.copy()
-    arr[:,0] -= np.mean(arr[:,0])
-    arr[:,1] -= np.mean(arr[:,1])
-    dx = np.diff(arr[:,0])
-    dy = np.diff(arr[:,1])
-
-    sgn = np.sign(np.arctan2(dy, dx))
-    return - np.sum(sgn)
 
 
 class LoadGeom(dfp.AbstractStep):
@@ -252,85 +178,44 @@ def load_alice_data(alice_file, shape_file, master_file):
     df1['geom'] = lmap(lambda x: AnyGeom(x).as_geometry(), df1.geom)
 
     return df1
+
+
+def set_figure_size():
+    env = plt.axis()
+    dlng = env[1] - env[0]
+    dlat = env[3] - env[2] 
+
+    cb_size_inches = 4 
+    ratio = dlat/dlng 
+    if ratio > 1:
+        print("gt")
+        plt.gcf().set_size_inches( cb_size_inches + 10/ratio, 10)
+    else:
+        print("lt")
+        plt.gcf().set_size_inches( cb_size_inches + 10, 10/ratio)
+
+
+def add_labels(locs):
+    labeler = PlatLabel()
+    # bbox = {'color':'silver', 'alpha':.9}
+    effect = fplots.outline(clr='#EEEEEE', lw=4)
+    label_level = npmap(lambda x: x.Centroid().GetX(), locs.geom)
+    label_level *= -1
+    
+    
+    for geom, name, level in zip(locs.geom, locs.Name, label_level):
+        cent = geom.Centroid()
+        # fgplots.plot_shape(point, 'C0o', ms=4, zorder=20)
+        labeler.text(cent.GetX(), cent.GetY(), " " + name.title(),
+                      color='k', 
+                      path_effects=effect, 
+                      level=level, 
+                      zorder=20,
+                      ha="center",
+                      fontsize=10,
+            )
+    return labeler
+
+
+
                                     
-def plot_base_layer(df, geom_col='geom', value_col='value', **kwargs):
-    cmap = kwargs.pop('cmap', plt.cm.YlOrRd)
-    label = kwargs.pop('label', "Value")
-    ec = 'w'
-
-    _, cb = fgplots.chloropleth(df[geom_col], df[value_col], cmap=cmap, ec=ec, )
-    cb.set_label(label)
-
-
-# def main():
-#     school_type = 'High'
-#     district= 3
-#     masterfn = "masterlist.csv"
-#     distfn = '/home/fergal/data/elections/shapefiles/councildistricts/Councilmanic_Districts_2022.kml'
-#     locfn = "/home/fergal/data/elections/shapefiles/schools/Public_Schools.kml"
-#     schfn = f'/home/fergal/data/elections/shapefiles/schools/{school_type}_School_Districts.kml'
-#     farmsfn = "farms0623.csv"
-
-#     master = pd.read_csv(masterfn)
-#     farms = pd.read_csv(farmsfn)
-#     sch = fgg.load_geoms_as_df(schfn)
-#     dist = fgg.load_geoms_as_df(distfn)
-#     locs = fgg.load_geoms_as_df(locfn)
-#     locs['FACILITY_N'] = locs.FACILITY_N.str.title()
-
-#     df = pd.merge(master, sch, left_on='AltName1', right_on='Name')
-
-#     cols = "Site_Num Site_Name AltName1 AltName2 geom".split() # Site_Type Enrollment Free TotalFR FRPercent".split()
-#     pipeline = [
-#         dfp.SelectCol(*cols),
-#     ]
-#     df = dfp.runPipeline(pipeline, df)
-                   
-#     pipeline = [
-#         dfp.Load(farmsfn),
-#         dfp.Filter("Year == 'Y2223'"),
-#         dfp.SelectCol("Site_Num", "Enrollment", "TotalFR", "FRPercent")
-#     ]
-#     farms = dfp.runPipeline(pipeline)                   
-#     df = pd.merge(df, farms, on='Site_Num')
-
-#     #Add in POINTs to show location of schools
-#     cols = ['Site_Num', 'Site_Name', 'AltName1', 'AltName2', 'geom_x', 'Enrollment',
-#        'TotalFR', 'FRPercent', 'geom_y',  'FACILITY_T', 'FACILITY_N',  'MAP_LABEL',
-#     ]
-#     df = pd.merge(df, locs, left_on='AltName2', right_on='FACILITY_N')
-#     pipeline = [
-#         dfp.SelectCol(cols),
-#         dfp.RenameCol({'geom_x': 'area_geom', 'geom_y':'address_geom'}),
-#         dfp.SetCol('MAP_LABEL', 'MAP_LABEL.str.title()'),
-#     ]
-#     df = dfp.runPipeline(pipeline, df)
-
-#     from frmgis.union import union_collection
-#     county_geom = union_collection(dist.geom.values)
-
-#     #School geom boundaries are over water, district ones are not. Trim schools
-#     #to match districts
-#     df['area_geom'] = df.area_geom.apply( lambda x: county_geom.Intersection(x))
-#     #Create a union geometry of districts, intersect each HS with it
-#     plt.clf()
-#     fgplots.plot_shape(county_geom, 'g-')
-#     _, cb = fgplots.chloropleth(df.area_geom, df.FRPercent, cmap=plt.cm.YlOrRd, ec='w')
-
-#     for g in dist.geom:
-#         fgplots.plot_shape(g, 'c-', lw=2,)
-#     cb.set_label("Percent Students on Free Lunch")
-#     plt.axis([-77.22, -76.04, 39.15, 39.77])
-
-#     import matte
-#     district_geom = dist.geom.iloc[district-1]
-#     overlay = matte.make_matte(
-#         district_geom, 'axis', zorder=10, color='w', alpha=.8)
-#     plt.gca().add_patch(overlay)
-
-#     locs = filterByGeom(df, district_geom)
-#     labeler = add_labels(locs)
-#     # labeler.render()
-
-#     fplots.add_watermark(loc='bottom')
-#     return locs
