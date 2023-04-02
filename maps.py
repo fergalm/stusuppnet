@@ -17,6 +17,7 @@ import frmplots.plots as fplots
 
 from frmbase.support import npmap, lmap 
 import frmbase.dfpipeline as dfp 
+from frmbase.support import Timer 
 
 """
 
@@ -27,9 +28,20 @@ select only schools with correct type AND in union geom for labeling
 labels
 
 """
-import frmgis.roads as road 
 
-from frmbase.support import Timer 
+
+def main():
+    districtfn = '/home/fergal/data/elections/shapefiles/councildistricts/Councilmanic_Districts_2022.kml'
+    labelfn = "/home/fergal/data/elections/shapefiles/schools/Public_Schools.kml"
+    schshapefn = f'/home/fergal/data/elections/shapefiles/schools/{school_type}_School_Districts.kml'
+    farmsfn = "farms0623.csv"
+    alicefn = "alice_high.csv"
+
+    with Timer("Loading districts"):
+        political_districts = load_districts(districtfn)
+
+    with Timer("Loading Schools Data"):
+        schools_df = load_alice_data(alicefn, schshapefn, masterfn)
 
 def load(political_districts=None):
     """
@@ -44,11 +56,7 @@ def load(political_districts=None):
 
     school_type = 'Elementary'
     district_name= "4"
-    masterfn = "masterlist.csv"
     districtfn = '/home/fergal/data/elections/shapefiles/councildistricts/Councilmanic_Districts_2022.kml'
-    labelfn = "/home/fergal/data/elections/shapefiles/schools/Public_Schools.kml"
-    schshapefn = f'/home/fergal/data/elections/shapefiles/schools/{school_type}_School_Districts.kml'
-    farmsfn = "farms0623.csv"
     alicefn = "alice_high.csv"
 
     if political_districts is None:
@@ -58,7 +66,13 @@ def load(political_districts=None):
         district_geom = get_district_geom(political_districts, district_name)
  
     # base_layer = load_farms_data(farmsfn, schshapefn, masterfn)
-    schools_df = load_alice_data(alicefn, schshapefn, masterfn)
+    schools_df = load_alice_data(alicefn, school_type)
+
+    for d in range(1,8):
+        plt.clf()
+        plot(schools_df, political_districts, d)
+        plt.savefig(f"Council{d}_{school_type}.png")
+        print(f"Figure {d} complete")
 
     #Find the in-district schools
     return schools_df, political_districts
@@ -167,7 +181,7 @@ def load_farms_data(farms_file, shape_file, master_file):
     return df
 
 
-def load_alice_data(alice_file, shape_file, master_file):
+def load_alice_data(alice_file, school_type):
     pipeline = [
         dfp.Load(alice_file, index_col=0),
         dfp.SelectCol("CODE", 'Name', "Alice_Percent", "geom"),
