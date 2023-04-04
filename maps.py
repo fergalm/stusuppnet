@@ -31,10 +31,10 @@ labels
 
 
 def main():
-    school_type = 'High'
+    school_type = 'Elementary'
     districtfn = '/home/fergal/data/elections/shapefiles/councildistricts/Councilmanic_Districts_2022.kml'
     schshapefn = f'/home/fergal/data/elections/shapefiles/schools/{school_type}_School_Districts.kml'
-    alicefn = "alice_high.csv"
+    alicefn = "alice.csv"
 
     with Timer("Loading districts"):
         political_districts = load_districts(districtfn)
@@ -64,7 +64,7 @@ def load(political_districts=None):
     school_type = 'Elementary'
     district_name= "4"
     districtfn = '/home/fergal/data/elections/shapefiles/councildistricts/Councilmanic_Districts_2022.kml'
-    alicefn = "alice_high.csv"
+    alicefn = "alice.csv"
 
     if political_districts is None:
         political_districts = load_districts(districtfn)

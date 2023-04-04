@@ -26,7 +26,7 @@ def main():
     some of their area is listed as being in the bay. I should tidy that up.
     """
 
-    outfn = "alice_high.csv"
+    outfn = "alice.csv"
     incomefile = "income.csv"
     pattern = '/home/fergal/data/elections/shapefiles/schools/{school_type}_School_Districts.kml'
     fmeta.save_state(outfn +".json")
@@ -54,9 +54,12 @@ def main():
 
 def load_all_schools(pattern):
 
-    #stype = "Elementary Middle High".split()
-    stype = ["High"]
-    dflist = lmap(lambda x: fgg.load_geoms_as_df(pattern.format(school_type=x)), stype)
+    stype = "Elementary Middle High".split()
+    dflist = []
+    for st in stype:
+        df = fgg.load_geoms_as_df(pattern.format(school_type=st))
+        df['school_type'] = st
+        dflist.append(df) 
     df = pd.concat(dflist)
     return df 
 
