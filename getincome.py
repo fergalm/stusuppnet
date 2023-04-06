@@ -41,7 +41,6 @@ def main():
 
     overlap = gc.measure_overlap_with_df(sch, name_col='Name')
     df = pd.merge(alice, overlap, left_on='fips', right_index=True, validate="1:1")
-    idebug()
     sch['Alice_Percent'] = 0
     for i in range(len(sch)):
         name = sch.Name.iloc[i]
