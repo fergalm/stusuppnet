@@ -32,6 +32,7 @@ def main():
     fmeta.save_state(outfn +".json")
 
     sch = load_all_schools(pattern)
+    sch = sch.reset_index(drop=True)
 
     # bg = query_census_for_income()
     bg = pd.read_csv(incomefile)
@@ -39,7 +40,7 @@ def main():
     gc = GeomCollection(bg, 'fips')
 
     overlap = gc.measure_overlap_with_df(sch, name_col='Name')
-    df = pd.merge(alice, overlap, left_on='fips', right_index=True)
+    df = pd.merge(alice, overlap, left_on='fips', right_index=True, validate="1:1")
     idebug()
     sch['Alice_Percent'] = 0
     for i in range(len(sch)):
@@ -47,7 +48,10 @@ def main():
         numer = (df[name] * df['Num_Alice']).sum()
         denom = (df[name] * df['Num_Households']).sum()
         sch.loc[i, 'Alice_Percent'] = 100 * numer / denom
+        assert sch.loc[i, 'Name'] == name
 
+    cols = "Name CODE school_type Alice_Percent geom".split()
+    sch = sch[cols].copy()
     sch.to_csv(outfn)
     return df, sch
 
