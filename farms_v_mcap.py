@@ -29,6 +29,8 @@ Comparing Poverty as measured by FARMS with test scores as measured by MCAP
 
 def main():
     
+    #If you change the year you must change the code in 3 places!
+    title = "Bal. County 2021/22 School Year"
     cols = ['Site_Num', 'Site_Name', 'FRPercent', 'Year', 'CEP']
     pipeline = [
         dfp.Load("farms0623.csv", index_col=0),
@@ -80,5 +82,6 @@ def main():
     plt.ylabel("Proficient 3rd Grade Math (%)")
     fplots.add_watermark()
     plt.xlim(0, 100)
+    plt.title(title)
 
     return df 
