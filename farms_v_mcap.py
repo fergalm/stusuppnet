@@ -48,7 +48,7 @@ def main():
         dfp.Filter('Academic_Year == 2021'),
         dfp.Filter('Tested_Count > 50'),
         dfp.SelectCol(*cols),
-        dfp.Filter("Assessment == 'Mathematics Grade 4'"),
+        dfp.Filter("Assessment == 'Mathematics Grade 3'"),
         dfp.SetCol('School_Number', 'School_Number.astype(float).astype(int)'),
     ]
 
