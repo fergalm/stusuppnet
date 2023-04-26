@@ -25,6 +25,9 @@ import frmbase.fitter.nlsf as nlsf
 
 """
 Comparing Poverty as measured by FARMS with test scores as measured by MCAP
+
+TODO:
+o MCAP school code is sometimes int, sometimes string
 """
 
 def main():
@@ -85,3 +88,44 @@ def main():
     plt.title(title)
 
     return df 
+
+
+
+import matplotlib.ticker as mticker
+def plot_single_school_mcap(school_name):
+    mcap = "/home/fergal/data/politics/stusuppnet/MCAP/mcap_total.csv"
+    cols = "School_Number School_Name Assessment Proficient_Pct".split()              
+
+    
+    pipeline = [
+        dfp.Load(mcap, index_col=0),
+        dfp.Filter(f'School_Name == "{school_name}"'),
+        dfp.Filter("Grade > 0"),
+        dfp.AssertNotEmpty(),
+    ]
+    ses = dfp.runPipeline(pipeline)
+
+
+    func = lambda df: plt.plot(df.Academic_Year, df.Proficient_Pct, 'o-', label=gen_label(df.name))
+    plt.clf(); 
+    plt.gcf().set_size_inches((12,8))
+    ses. \
+        sort_values('Academic_Year'). \
+        groupby(['Grade', 'Subject']). \
+        apply(func); 
+    plt.legend()
+
+    plt.ylim(0, 100)
+    plt.xlabel("Year")
+    plt.ylabel("Percent Proficient")
+    plt.title(school_name)
+    plt.gca().xaxis.set_major_locator(mticker.MaxNLocator(5))
+    plt.gca().xaxis.set_major_locator(mticker.MaxNLocator(5))
+    plt.gca().xaxis.set_tick_params(which='minor', length=0)
+    fplots.add_watermark()
+
+    school_name = "_".join(school_name.split())
+    plt.savefig(f'Single_School_ts{school_name}.png')
+
+def gen_label(tup):
+    return f"Grade {tup[0]} {tup[1]}"
