@@ -35,7 +35,7 @@ o Time series of all schools. Do a weighted average
 def main():
     for grade in [3,4,5]:
         combined_plot(grade)
-        plt.savefig("MCAP_Math_Grade_{grade}_allyears.png")
+        plt.savefig(f"MCAP_Math_Grade_{grade}_allyears.png")
         plt.pause(1)
 
 
