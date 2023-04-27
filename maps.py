@@ -19,6 +19,7 @@ from frmbase.support import npmap, lmap
 import frmbase.dfpipeline as dfp 
 from frmbase.support import Timer 
 
+import stio as io 
 """
 
 Intersect district with schools
@@ -29,54 +30,80 @@ labels
 
 """
 
-
 def main():
-    school_type = 'Elementary'
-    districtfn = '/home/fergal/data/elections/shapefiles/councildistricts/Councilmanic_Districts_2022.kml'
-    schshapefn = f'/home/fergal/data/elections/shapefiles/schools/{school_type}_School_Districts.kml'
+    for school_type in ["Elementary", "Middle", "High"]:
+        for mtype in ["cong", "council", "leg", ]:
+            do_school_type(school_type, mtype)
+
+def do_school_type(school_type, mtype):
+    council_fn = '/home/fergal/data/elections/shapefiles/councildistricts/Councilmanic_Districts_2022.kml'
+    leg_fn = '/home/fergal/data/elections/shapefiles/md_lege_districts/2022/Maryland_Legislative_Districts_2022.kml'
+    cong_fn = "/home/fergal/data/elections/shapefiles/congressional/Congress_2022/US_Congressional_Districts_2022.kml"
+    # schshapefn = f'/home/fergal/data/elections/shapefiles/schools/{school_type}_School_Districts.kml'
     alicefn = "alice.csv"
 
     with Timer("Loading districts"):
-        political_districts = load_districts(districtfn)
+        if mtype == "council":
+            political_districts = io.load_council_districts(council_fn)
+        elif mtype == "leg":
+            political_districts = io.load_leg_districts(leg_fn)
+        elif mtype == "cong":
+            political_districts = io.load_cong_districts(cong_fn)
+        else:
+            assert False 
 
+
+    # idebug()
     with Timer("Loading Schools Data"):
-        schools_df = load_alice_data(alicefn, school_type)
+        schools_df = io.load_alice_data(alicefn, school_type)
 
-    for d in range(1,8):
+    for d in political_districts.DistrictId:
         plt.clf()
         plot(schools_df, political_districts, d)
-        plt.suptitle(f"Council District {d} High Schools")
-        plt.savefig(f"Council{d}_{school_type}.png")
+
+        if mtype == "council":
+            plt.suptitle(f"Council District {d} {school_type} Schools")
+            plt.savefig(f"Council{d}_{school_type}.png")
+        elif mtype == "leg":
+            plt.suptitle(f"Legislative {d} {school_type} Schools")
+            plt.savefig(f"Legislative{d}_{school_type}.png")
+        elif mtype == "cong":
+            plt.suptitle(f"Congressional District {d}: {school_type} Schools")
+            plt.savefig(f"cong{d}_{school_type}.png")
+        else:
+            assert False 
+
         print(f"Figure {d} complete")
+        plt.pause(1)
 
 
-def load(political_districts=None):
-    """
-    TODO
-    x Add labels 
-    o Figure out what to do for two schools in same place
-    x Filter geoms to district shape 
-    o How to best zoom to a district
-    3. Add roads 
-    o Should I label shapes not school locations?
-    """
+# def load(political_districts=None):
+#     """
+#     TODO
+#     x Add labels 
+#     o Figure out what to do for two schools in same place
+#     x Filter geoms to district shape 
+#     o How to best zoom to a district
+#     3. Add roads 
+#     o Should I label shapes not school locations?
+#     """
 
-    school_type = 'Elementary'
-    district_name= "4"
-    districtfn = '/home/fergal/data/elections/shapefiles/councildistricts/Councilmanic_Districts_2022.kml'
-    alicefn = "alice.csv"
+#     school_type = 'Middle'
+#     # district_name= "4"
+#     districtfn = '/home/fergal/data/elections/shapefiles/councildistricts/Councilmanic_Districts_2022.kml'
+#     alicefn = "alice.csv"
 
-    if political_districts is None:
-        political_districts = load_districts(districtfn)
+#     if political_districts is None:
+#         political_districts = load_council_districts(districtfn)
 
-    with Timer("district geom"):
-        district_geom = get_district_geom(political_districts, district_name)
+#     # with Timer("district geom"):
+#     #     district_geom = get_district_geom(political_districts, district_name)
  
-    # base_layer = load_farms_data(farmsfn, schshapefn, masterfn)
-    schools_df = load_alice_data(alicefn, school_type)
+#     # base_layer = load_farms_data(farmsfn, schshapefn, masterfn)
+#     schools_df = io.load_alice_data(alicefn, school_type)
 
-    #Find the in-district schools
-    return schools_df, political_districts
+#     #Find the in-district schools
+#     return schools_df, political_districts
 
 
 
@@ -110,6 +137,7 @@ def plot(schools_df, political_df, district_name):
     district_name = str(district_name)
     district_geom = political_df[ political_df.DistrictId == district_name].geom.iloc[0]
     district_sch_df = filterByGeom(schools_df, district_geom)
+    assert len(district_sch_df) > 0
     district_sch_geom = union_collection(list(district_sch_df.geom))
     env = district_sch_geom.GetEnvelope()
 
@@ -131,85 +159,21 @@ def plot(schools_df, political_df, district_name):
     fplots.add_watermark(loc='bottom')
 
 
-class LoadGeom(dfp.AbstractStep):
-    def __init__(self, fn):
-        self.fn = fn 
-
-    def apply(self, df=None):
-        return fgg.load_geoms_as_df(self.fn)
 
 
-def get_district_geom(df, name):
-    wkt = df.geom[ df.DistrictId == name].iloc[0]
-    geom = AnyGeom(wkt).as_geometry()
-    return geom
-
-
-def load_districts(fn):
-    pipeline = [
-        LoadGeom(fn),
-        dfp.RenameCol({"COUNCILMANIC_DISTRICTS":"DistrictId"}),
-        dfp.SelectCol("DistrictId", "geom"),
-    ]
-    df = dfp.runPipeline(pipeline)
-
-    #Simplify. This works better than simplify, but is very slow
-    for i in range(len(df)):
-        geom = AnyGeom(df.loc[i, 'geom']).as_geometry()
-        tmp = geom.Buffer(-.002)
-        df.loc[i, 'geom'] = tmp.Buffer(.002)
-    return df 
-
-
-def load_farms_data(farms_file, shape_file, master_file):
-    pipeline = [
-        dfp.Load(farms_file),
-        dfp.Filter("Year == 'Y2223'"),
-        dfp.SelectCol("Site_Num", 'Site_Name', "FRPercent"),
-        dfp.RenameCol({'FRPercent': 'Value'})
-    ]
-    df1 = dfp.runPipeline(pipeline)
-
-    pipeline = [
-        LoadGeom(shape_file),
-        dfp.SelectCol('Name', 'CODE', 'geom'),
-        dfp.SetCol('CODE', 'CODE.astype(int)')
-    ]
-    
-    df2 = dfp.runPipeline(pipeline)
-
-    df = pd.merge(df1, df2, left_on='Site_Num', right_on='CODE')
-    return df
-
-
-def load_alice_data(alice_file, school_type):
-    pipeline = [
-        dfp.Load(alice_file, index_col=0),
-        dfp.SelectCol("CODE", 'Name', "Alice_Percent", "geom"),
-        dfp.RenameCol({'Alice_Percent': 'Value'}),
-        dfp.SetCol('CODE', 'CODE.astype(int)'),
-    ]
-    df1 = dfp.runPipeline(pipeline)
-    df1['geom'] = lmap(lambda x: AnyGeom(x).as_geometry(), df1.geom)
-
-    return df1
-
-
-def set_figure_size():
+def set_figure_size(baseline_inches=14):
     env = plt.axis()
     dlng = env[1] - env[0]
     dlat = env[3] - env[2] 
 
     cb_size_inches = 1
     ratio = dlat/dlng 
-    # idebug()
-    print(dlng, dlat, ratio)
     if ratio > 1:
         print("gt")
-        plt.gcf().set_size_inches( cb_size_inches + 10/ratio, 10)
+        plt.gcf().set_size_inches( cb_size_inches + baseline_inches/ratio, baseline_inches)
     else:
         print("lt")
-        plt.gcf().set_size_inches( cb_size_inches + 10, 10*ratio)
+        plt.gcf().set_size_inches( cb_size_inches + baseline_inches, baseline_inches*ratio)
 
 
 def add_labels(locs):

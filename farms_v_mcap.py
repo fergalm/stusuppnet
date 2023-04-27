@@ -27,18 +27,55 @@ import frmbase.fitter.nlsf as nlsf
 Comparing Poverty as measured by FARMS with test scores as measured by MCAP
 
 TODO:
-o MCAP school code is sometimes int, sometimes string
+xMCAP school code is sometimes int, sometimes string
+o Time series of all schools. Do a weighted average
 """
 
+
 def main():
+    for grade in [3,4,5]:
+        combined_plot(grade)
+        plt.savefig("MCAP_Math_Grade_{grade}_allyears.png")
+        plt.pause(1)
+
+
+def combined_plot(grade): 
+    plt.clf()
+    for year in [2018, 2019, 2021, 2022]:
+        df = _plot_year(year, grade)
+
+    plt.xlabel("Students on Free/Reduced Lunch (%)")
+    plt.ylabel(f"Proficient Grade {grade} Math (%)")
+    fplots.add_watermark()
+
+    title = f"Baltimore County Schools"
+    plt.title(title, fontsize=28)
+    plt.legend()
+
+
+def plot_year(year:int, grade:int):
+    plt.clf()
+    _plot_year(year, grade) 
+    plt.xlabel("Students on Free/Reduced Lunch (%)")
+    plt.ylabel(f"Proficient Grade {grade} Math (%)")
+    fplots.add_watermark()
+
+    title = f"Baltimore County Schools  (Year starting {year})" 
+    plt.title(title)
+
+
+def _plot_year(year:int, grade:int):
     
+    # year = 2019
+
     #If you change the year you must change the code in 3 places!
-    title = "Bal. County 2021/22 School Year"
     cols = ['Site_Num', 'Site_Name', 'FRPercent', 'Year', 'CEP']
+
+    farms_year = year -2000
+    farms_year = f"Y{farms_year}{farms_year+1}"
     pipeline = [
         dfp.Load("farms0623.csv", index_col=0),
-        # dfp.Filter("school_type == 'Elementary'"),
-        dfp.Filter("Year == 'Y2122'"),
+        dfp.Filter(f"Year == '{farms_year}'"),
         dfp.AssertNotEmpty(),
         dfp.SelectCol(*cols)
     ]
@@ -50,10 +87,12 @@ def main():
     cols = "School_Number School_Name Assessment Proficient_Pct".split()              
     pipeline = [
         dfp.Load(mcap, index_col=0),
-        dfp.Filter('Academic_Year == 2021'),
+        dfp.Filter(f'Academic_Year == {year}'),
         dfp.Filter('Tested_Count > 50'),
         dfp.SelectCol(*cols),
-        dfp.Filter("Assessment == 'Mathematics Grade 3'"),
+        dfp.Filter(f"Assessment == 'Mathematics Grade {grade}'"),
+        # dfp.Filter(f"Assessment == 'English/Language Arts Grade {grade}'"),
+        dfp.AssertNotEmpty(),
         dfp.SetCol('School_Number', 'School_Number.astype(float).astype(int)'),
     ]
 
@@ -70,23 +109,21 @@ def main():
     fobj = nlsf.Nlsf(x, y, None, param=pars, func=nlsf.nlExp)
     fobj.fit()
 
-    plt.clf()
+    # plt.clf()
     plt.gcf().set_size_inches((12,8))
 
     # import matplotlib.patheffects as meffect
     # shadow = [meffect.SimplePatchShadow(alpha=1, shadow_rgbFace='grey'), meffect.Normal()]
-    # plt.plot(x, y, 'ko', path_effects=shadow)
-    plt.plot(x, y, 'o', color='midnightblue')
+    clr = 'midnightblue'
+    clr = f'C{year-2018}'
+    plt.plot(x, y, 'o', color=clr)
     # plt.plot(x[i0], y[i0], 'C2o', ms=14, mec='yellow', mew=2)
     
-    plt.plot(x, fobj.getBestFitModel(), 'C1-', lw=4)
+    xx = np.arange(100)
+    plt.plot(xx, fobj.getBestFitModel(xx), '-', color=clr, lw=4, label=year)
 
-    plt.xlabel("Students on Free/Reduced Lunch (%)")
-    plt.ylabel("Proficient 3rd Grade Math (%)")
-    fplots.add_watermark()
     plt.xlim(0, 100)
-    plt.title(title)
-
+    plt.ylim(0, 100)
     return df 
 
 

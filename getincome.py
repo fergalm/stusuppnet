@@ -40,6 +40,9 @@ def main():
     gc = GeomCollection(bg, 'fips')
 
     overlap = gc.measure_overlap_with_df(sch, name_col='Name')
+    overlap.to_csv('overlap.csv')
+    alice.to_csv('tmp-alice.csv')
+    return 
     df = pd.merge(alice, overlap, left_on='fips', right_index=True, validate="1:1")
     sch['Alice_Percent'] = 0
     for i in range(len(sch)):
