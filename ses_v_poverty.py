@@ -63,6 +63,7 @@ def main():
 
     title = f"Baltimore County Schools"
     plt.title(title, fontsize=28)
+    plt.xlim(12, 22)
 
 
     # plt.scatter(df.FRPercent.values, df.Proficient_Pct.values, c=df.IntYear.values)
