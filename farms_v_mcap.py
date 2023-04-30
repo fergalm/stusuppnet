@@ -6,21 +6,10 @@ import numpy as np
 
 import frmbase.support as fsupport 
 import frmplots.plots as fplots
-import frmbase.meta as fmeta 
+
 import frmbase.dfpipeline as dfp 
 lmap = fsupport.lmap 
 
-from frmpolitics.census import CensusQuery, TigerQueryAcs
-from frmgis.geomcollect import GeomCollection
-import frmgis.get_geom as fgg 
-
-from frmgis.anygeom import AnyGeom
-import frmgis.plots as fgplots 
-import frmgis.mapoverlay as fmo
-import getincome as gi 
-import frmgis.roads as roads 
-
-import frmbase.fitter.lsf as lsf 
 import frmbase.fitter.nlsf as nlsf 
 
 """
@@ -69,34 +58,11 @@ def _plot_year(year:int, grade:int):
     # year = 2019
 
     #If you change the year you must change the code in 3 places!
-    cols = ['Site_Num', 'Site_Name', 'FRPercent', 'Year', 'CEP']
-
-    farms_year = year -2000
-    farms_year = f"Y{farms_year}{farms_year+1}"
-    pipeline = [
-        dfp.Load("farms0623.csv", index_col=0),
-        dfp.Filter(f"Year == '{farms_year}'"),
-        dfp.AssertNotEmpty(),
-        dfp.SelectCol(*cols)
-    ]
-    farms = dfp.runPipeline(pipeline)
-    # return farms
-                   
+    farms = "farms0623.csv"
+    farms = load_farms(farms, year)                   
 
     mcap = "/home/fergal/data/politics/stusuppnet/MCAP/mcap_total.csv"
-    cols = "School_Number School_Name Assessment Proficient_Pct".split()              
-    pipeline = [
-        dfp.Load(mcap, index_col=0),
-        dfp.Filter(f'Academic_Year == {year}'),
-        dfp.Filter('Tested_Count > 50'),
-        dfp.SelectCol(*cols),
-        dfp.Filter(f"Assessment == 'Mathematics Grade {grade}'"),
-        # dfp.Filter(f"Assessment == 'English/Language Arts Grade {grade}'"),
-        dfp.AssertNotEmpty(),
-        dfp.SetCol('School_Number', 'School_Number.astype(float).astype(int)'),
-    ]
-
-    mcap = dfp.runPipeline(pipeline)
+    mcap = load_mcap(mcap, year, grade)
 
     df = pd.merge(farms, mcap, left_on='Site_Num', right_on='School_Number')
     df = df.sort_values('FRPercent')
@@ -127,6 +93,38 @@ def _plot_year(year:int, grade:int):
     return df 
 
 
+
+def load_farms(fn, year):
+    """Load FARMS data for a single year"""
+    cols = ['Site_Num', 'Site_Name', 'FRPercent', 'Year', 'CEP']
+
+    farms_year = year -2000
+    farms_year = f"Y{farms_year}{farms_year+1}"
+    pipeline = [
+        dfp.Load(fn, index_col=0),
+        dfp.Filter(f"Year == '{farms_year}'"),
+        dfp.AssertNotEmpty(),
+        dfp.SelectCol(*cols)
+    ]
+    farms = dfp.runPipeline(pipeline)
+    return farms 
+
+
+def load_mcap(fn:str, year:int, grade:int):
+    cols = "School_Number School_Name Assessment Proficient_Pct".split()              
+    pipeline = [
+        dfp.Load(fn, index_col=0),
+        dfp.Filter(f'Academic_Year == {year}'),
+        dfp.Filter('Tested_Count > 50'),
+        dfp.SelectCol(*cols),
+        dfp.Filter(f"Assessment == 'Mathematics Grade {grade}'"),
+        # dfp.Filter(f"Assessment == 'English/Language Arts Grade {grade}'"),
+        dfp.AssertNotEmpty(),
+        dfp.SetCol('School_Number', 'School_Number.astype(float).astype(int)'),
+    ]
+
+    mcap = dfp.runPipeline(pipeline)
+    return mcap
 
 import matplotlib.ticker as mticker
 def plot_single_school_mcap(school_name):
