@@ -27,6 +27,26 @@ def main():
         plt.savefig(f"MCAP_Math_Grade_{grade}_allyears.png")
         plt.pause(1)
 
+def make_presentation_plots(): 
+    grade = 3
+    years = [2018, 2019, 2021, 2022]
+
+    for num in [1,2,3,4]:
+        plt.clf()
+        for year in years[:num]:
+            df = _plot_year(year, grade)
+
+        plt.xlabel("Students on Free/Reduced Lunch (%)")
+        plt.ylabel(f"Proficient Grade {grade} Math (%)")
+        fplots.add_watermark()
+
+        title = f"Baltimore Elementary County Schools"
+        plt.title(title, fontsize=28)
+        plt.legend()
+        fn = f"MCAP_Math_Grade_{grade}_{years[0]}_{years[num-1]}.png"
+        print(fn)
+        plt.savefig(fn)
+
 
 def combined_plot(grade): 
     plt.clf()
