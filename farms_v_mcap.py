@@ -40,7 +40,7 @@ def make_presentation_plots():
         plt.ylabel(f"Proficient Grade {grade} Math (%)")
         fplots.add_watermark()
 
-        title = f"Baltimore Elementary County Schools"
+        title = f"Baltimore County Elementary Public Schools"
         plt.title(title, fontsize=28)
         plt.legend()
         fn = f"MCAP_Math_Grade_{grade}_{years[0]}_{years[num-1]}.png"
