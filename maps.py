@@ -65,7 +65,7 @@ def do_school_type(school_type, mtype):
 
         if mtype == 'cong' and school_type.lower() == 'elementary':
             labeler.render()
-            
+
         if mtype == "council":
             plt.suptitle(f"Council District {d} {school_type} Schools")
             plt.savefig(f"Council{d}_{school_type}.png")
@@ -157,6 +157,7 @@ def plot(schools_df, political_df, district_name):
     cb.set_label("School Lunch Eligible (%)")
     labeler = add_labels(district_sch_df)
 
+    fgplots.plot_shape(district_geom, '-', color='ivory', lw=6, zorder=+19)
     fgplots.plot_shape(district_geom, '-', color='midnightblue', lw=4, zorder=+20)
     frmgis.roads.plot_interstate()
     fmo.drawMap(zoom_delta=-1)
