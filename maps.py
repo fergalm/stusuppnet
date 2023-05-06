@@ -40,7 +40,8 @@ def do_school_type(school_type, mtype):
     leg_fn = '/home/fergal/data/elections/shapefiles/md_lege_districts/2022/Maryland_Legislative_Districts_2022.kml'
     cong_fn = "/home/fergal/data/elections/shapefiles/congressional/Congress_2022/US_Congressional_Districts_2022.kml"
     # schshapefn = f'/home/fergal/data/elections/shapefiles/schools/{school_type}_School_Districts.kml'
-    alicefn = "alice.csv"
+    # alicefn = "alice.csv"
+    farmsfn = "farms0623.csv"
 
     with Timer("Loading districts"):
         if mtype == "council":
@@ -55,12 +56,16 @@ def do_school_type(school_type, mtype):
 
     # idebug()
     with Timer("Loading Schools Data"):
-        schools_df = io.load_alice_data(alicefn, school_type)
+        # schools_df = io.load_alice_data(alicefn, school_type)
+        schools_df = io.alt_load_farms_data(farmsfn, school_type) 
 
     for d in political_districts.DistrictId:
         plt.clf()
-        plot(schools_df, political_districts, d)
+        labeler = plot(schools_df, political_districts, d)
 
+        if mtype == 'cong' and school_type.lower() == 'elementary':
+            labeler.render()
+            
         if mtype == "council":
             plt.suptitle(f"Council District {d} {school_type} Schools")
             plt.savefig(f"Council{d}_{school_type}.png")
@@ -147,9 +152,10 @@ def plot(schools_df, political_df, district_name):
 
     cmap = plt.cm.YlOrRd
     fgplots.chloropleth(schools_df.geom, schools_df.Value, cmap=cmap, alpha=.1, wantCbar=False)
-    _, cb = fgplots.chloropleth(district_sch_df.geom, district_sch_df.Value, ec='w', lw=2,  cmap=cmap, vmin=10, vmax=50)
-    cb.set_label("ALICE Households (%)")
-    add_labels(district_sch_df)
+    _, cb = fgplots.chloropleth(district_sch_df.geom, district_sch_df.Value, ec='w', lw=2,  cmap=cmap, vmin=10, vmax=90, nstep=9)
+    #cb.set_label("ALICE Households (%)")
+    cb.set_label("School Lunch Eligible (%)")
+    labeler = add_labels(district_sch_df)
 
     fgplots.plot_shape(district_geom, '-', color='midnightblue', lw=4, zorder=+20)
     frmgis.roads.plot_interstate()
@@ -157,7 +163,7 @@ def plot(schools_df, political_df, district_name):
     ax = plt.gca()
     plt.axis('off')
     fplots.add_watermark(loc='bottom')
-
+    return labeler
 
 
 
