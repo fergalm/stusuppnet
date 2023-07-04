@@ -41,8 +41,53 @@ def main(council=None):
 
     df = funny_merge(cong, leg, "School")
     df = funny_merge(df, council, "School")
+    df.reset_index(inplace=True)
+
+    stype = alice[['Name', 'school_type']]
+    df = df.merge(stype, left_on='School', right_on='Name')
+    cols = "School school_type Council Legislative Congressional".split()
+    df = df[cols]
+                  
     df.to_csv(outfile)
     return df
+
+
+def to_html(df):
+    pd.options.mode.chained_assignment = None  # default='warn'
+
+    df = df.copy()
+    df['uid'] = "0" 
+    
+
+    #Add a unique value for each school
+    uid = "0" 
+    num = len(df)
+    for i in range(num-1, 0, -1):
+        if df.iloc[i]['School'] == df.iloc[i-1]['School']:
+            df.at[i, 'School'] = ""
+            df.at[i, 'school_type'] = ""
+            df.at[i, 'uid'] = uid
+        else:
+            df.at[i, 'uid'] = uid
+            uid =  str( int(uid) + 1)
+
+    df['uid']  = df.uid.astype(int) #% 2
+
+    styler = df.style.apply(foo, axis=1) \
+        .format(na_rep="") \
+        .hide(['uid'], axis=1)  \
+        .hide()
+    styler.to_html('table.html')
+
+
+def foo(series):
+    
+    val = "background-color: white;"
+    if series.uid % 2:
+        val = "background-color: #E0ECF3;"
+    return [val] * len(series)
+
+
 
 def create_table(sch_gc, pol, district_type):
 
@@ -100,8 +145,8 @@ def funny_merge(df1, df2, on):
     count[count2 > count1] = count2
 
 
-    cols1 = set(df1.columns) - set([on])
-    cols2 = set(df2.columns) - set([on])
+    cols1 = list(set(df1.columns) - set([on]))
+    cols2 = list(set(df2.columns) - set([on]))
 
     dflist = []
     for i in range(len(count)):

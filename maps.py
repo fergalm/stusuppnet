@@ -17,7 +17,7 @@ import frmplots.plots as fplots
 
 from frmbase.support import npmap, lmap 
 import frmbase.dfpipeline as dfp 
-from frmbase.support import Timer 
+from frmbase.support import Timer, check_cols_in_df
 
 import stio as io 
 """
@@ -41,7 +41,8 @@ def do_school_type(school_type, mtype):
     cong_fn = "/home/fergal/data/elections/shapefiles/congressional/Congress_2022/US_Congressional_Districts_2022.kml"
     # schshapefn = f'/home/fergal/data/elections/shapefiles/schools/{school_type}_School_Districts.kml'
     # alicefn = "alice.csv"
-    farmsfn = "farms0623.csv"
+    #farmsfn = "farms0623.csv"
+    snapfn = "snap/snap.xlsx"
 
     with Timer("Loading districts"):
         if mtype == "council":
@@ -57,7 +58,9 @@ def do_school_type(school_type, mtype):
     # idebug()
     with Timer("Loading Schools Data"):
         # schools_df = io.load_alice_data(alicefn, school_type)
-        schools_df = io.alt_load_farms_data(farmsfn, school_type) 
+        #schools_df = io.alt_load_farms_data(farmsfn, school_type) 
+        schools_df = io.load_dc_data(snapfn, school_type)
+        assert check_cols_in_df(schools_df, "Name Value geom".split())
 
     for d in political_districts.DistrictId:
         plt.clf()
