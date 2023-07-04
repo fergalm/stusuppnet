@@ -157,7 +157,7 @@ def plot(schools_df, political_df, district_name):
     fgplots.chloropleth(schools_df.geom, schools_df.Value, cmap=cmap, alpha=.1, wantCbar=False)
     _, cb = fgplots.chloropleth(district_sch_df.geom, district_sch_df.Value, ec='w', lw=2,  cmap=cmap, vmin=10, vmax=90, nstep=9)
     #cb.set_label("ALICE Households (%)")
-    cb.set_label("School Lunch Eligible (%)")
+    cb.set_label("Eligible for SNAP (%)")
     labeler = add_labels(district_sch_df)
 
     fgplots.plot_shape(district_geom, '-', color='ivory', lw=6, zorder=+19)
