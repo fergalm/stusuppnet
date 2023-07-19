@@ -2,8 +2,8 @@ from ipdb import set_trace as idebug
 from bokeh.io import show,save
 import numpy as np 
 
-from bokeh.plotting import figure
-from bokeh.models import CustomJS, ColorBar, LinearColorMapper, BasicTicker, Label, Div, Spacer
+from bokeh.plotting import figure, output_file
+from bokeh.models import CustomJS, ColorBar, LinearColorMapper, BasicTicker, Label, Div, Spacer, HoverTool
 from bokeh.layouts import row, column
 import bokeh.palettes 
 
@@ -25,10 +25,10 @@ Todo
 x SNAP DC data 
 x Fix colorbar range 
 o Bigger buttons
-o Better defaults
-o Fix 42B
+x Better defaults
+x Fix 42B
 o no tooltip for roads 
-o Legend label 
+x Legend label 
 o Turn on council
 o 
 o Make controls bigger
@@ -46,9 +46,12 @@ x Plot polygons with holes
 
 import pandas as pd 
 def main():
+    outfn = "snap.html"
     council_fn = '/home/fergal/data/elections/shapefiles/councildistricts/Councilmanic_Districts_2022.kml'
     leg_fn = '/home/fergal/data/elections/shapefiles/md_lege_districts/2022/Maryland_Legislative_Districts_2022.kml'
     cong_fn = "/home/fergal/data/elections/shapefiles/congressional/Congress_2022/US_Congressional_Districts_2022.kml"
+
+    output_file(outfn)
 
     # alicefn = "alice.csv"    
     # farmsfn = "farms0623.csv"
@@ -61,14 +64,14 @@ def main():
     high = loader(povertyfn, "High")
     assert len(elem) > 0
 
-    # council = stio.load_council_districts(council_fn)
+    council = stio.load_council_districts(council_fn)
     leg = stio.load_leg_districts(leg_fn)
     cong = stio.load_cong_districts(cong_fn)
 
-    tools = "pan,wheel_zoom,reset,hover"
+    tools = "pan,wheel_zoom,reset"
     fig = figure(
         tools=tools,
-        tooltips="@tooltip", 
+        #tooltips="@tooltip", 
         frame_height=800, 
         frame_width=800,
         x_range=(-77, -76.25),
@@ -116,24 +119,24 @@ def main():
     # plat_leg = fbc.plot_geometry_outlines(fig, leg.geom, leg.DistrictId.values)
     # plat_cong = fbc.plot_geometry_outlines(fig, cong.geom, cong.DistrictId.values)
 
-    # plat_council = fbc.plot_geometry_outlines(fig, council, None)
+    plat_council = fbc.plot_geometry_outlines(fig, council, None)
     plat_leg = fbc.plot_geometry_outlines(fig, leg, None)
     plat_cong = fbc.plot_geometry_outlines(fig, cong, None)
 
-    # plat_council.visible = False 
+    plat_council.visible = False 
     plat_leg.visible = False
     plat_cong.visible = False 
 
     leg_choice = RadioButtonGroup(labels="None Council Leg Cong".split(), active=0, align="center")
     callback = CustomJS(
         args=dict(
-            # p1=plat_council, 
+            p1=plat_council, 
             p2=plat_leg, 
             p3=plat_cong, 
             leg_choice=leg_choice,
         ),
         code="""
-            //p1.visible = (leg_choice.active==1);
+            p1.visible = (leg_choice.active==1);
             p2.visible = (leg_choice.active==2);
             p3.visible = (leg_choice.active==3);
             console.log('radio_button_group: active=' + leg_choice.active, this.toString());
@@ -142,11 +145,18 @@ def main():
     leg_choice.js_on_event("button_click", callback)
 
     roads.plot_interstate(fig, annotate=True)
-    add_political_callout(fig, None, plat_leg, plat_cong)
+    add_political_callout(fig, plat_council, plat_leg, plat_cong)
 
     cb = create_colour_bar(fig, palette, 10, 90)
     layout = create_layout(sch_choice, leg_choice, fig, cb)
-    save(layout, 'farms.html')
+
+    #Show tooltips for heatmap layers only
+    hover = HoverTool()
+    hover.tooltips = "@tooltip"
+    hover.renderers = [plat_council, plat_leg, plat_cong, plat_elem, plat_mid, plat_high]
+    fig.add_tools(hover)
+
+    save(layout, outfn)
 
 
 def create_layout(sch_choice, leg_choice, fig, cb):
@@ -164,7 +174,8 @@ def create_layout(sch_choice, leg_choice, fig, cb):
     )
 
     controls = row(sch, leg, sizing_mode="stretch_width")
-    layout = column(controls, row(fig, cb))
+    note = Div(text="Note: School catchment areas typically overlap with two or more political districts")
+    layout = column(controls, row(fig, cb), note)
     return layout
 
 
@@ -289,7 +300,7 @@ def create_colour_bar(fig, palette, low, high):
 def add_political_callout(fig, plat_council, plat_leg, plat_cong):
     """Add a label to indicate the political district under the mouse"""
 
-    text = "District"
+    text = ""
     label = Label(
         x=400, y=740,
         x_units='screen', y_units='screen', 
@@ -301,17 +312,17 @@ def add_political_callout(fig, plat_council, plat_leg, plat_cong):
     callback = CustomJS(
         args=dict(
             label=label,
-            #p1=plat_council, 
+            p1=plat_council, 
             p2=plat_leg, 
             p3=plat_cong, 
         ),
         code="""
+            console.log("In poltical callout");
             var cds = null;
-            //if (p1.visible)
-            //{   cds = p1.data_source;
-            //}
-            //else 
-            if (p2.visible)
+            if (p1.visible)
+            {   cds = p1.data_source;
+            }
+            else if (p2.visible)
             {   cds = p2.data_source;
             }
             else if (p3.visible)
@@ -320,12 +331,13 @@ def add_political_callout(fig, plat_council, plat_leg, plat_cong):
             else
             {   return;
             }
+            console.log("CDS selected");
 
             var indices = cds.inspected.indices;
             console.log(indices)
             if (indices.length > 0)
             {
-                console.log("Object selected")
+                console.log("Object selected");
                 var index = indices[0];
                 var text = cds.data['DistrictId'][index];
                 label.text= 'District ' + text;
