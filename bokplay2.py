@@ -71,14 +71,21 @@ def main():
     tools = "pan,wheel_zoom,reset"
     fig = figure(
         tools=tools,
-        #tooltips="@tooltip", 
         frame_height=800, 
         frame_width=800,
         x_range=(-77, -76.25),
         y_range=(39.1, 39.8),
         toolbar_location='above',
-        # title="Draft",
     )
+
+    label = Label(
+        x=400, y=740,
+        x_units='data', y_units='data', 
+        text="EMPTY TEXT", 
+        text_font_size="24px",
+        background_fill_color='#EEEEDD'
+    )
+ 
 
     palette = bokeh.palettes.YlOrRd4[::-1]  #Reverse order
     fmt = "{Name}: {Value:.0f}%"
@@ -111,15 +118,15 @@ def main():
     )
     sch_choice.js_on_event("button_click", callback)
 
+    #Do this before showing district lines 
+    roads.plot_interstate(fig, annotate=True)
 
     fmt = "District {DistrictId}"
-    opts = {'line_color':'navy', 'tooltip_fmt':fmt}
+    # opts = {'line_color':'navy', 'tooltip_fmt':fmt}
+    opts = {'line_color':'navy', 'tooltip_fmt':None}
     
-    # # plat_council = fbc.plot_geometry_outlines(fig, council.geom, council.DistrictId.values)
-    # plat_leg = fbc.plot_geometry_outlines(fig, leg.geom, leg.DistrictId.values)
-    # plat_cong = fbc.plot_geometry_outlines(fig, cong.geom, cong.DistrictId.values)
-
-    plat_council = fbc.plot_geometry_outlines(fig, council, None)
+    # This is where we plot geometry outlines
+    plat_council = fbc.plot_geometry_outlines(fig, council, **opts)
     plat_leg = fbc.plot_geometry_outlines(fig, leg, None)
     plat_cong = fbc.plot_geometry_outlines(fig, cong, None)
 
@@ -134,8 +141,10 @@ def main():
             p2=plat_leg, 
             p3=plat_cong, 
             leg_choice=leg_choice,
+            label=label,
         ),
         code="""
+            label.visible = (leg_choice.active > 0);
             p1.visible = (leg_choice.active==1);
             p2.visible = (leg_choice.active==2);
             p3.visible = (leg_choice.active==3);
@@ -144,9 +153,7 @@ def main():
     )
     leg_choice.js_on_event("button_click", callback)
 
-    roads.plot_interstate(fig, annotate=True)
-    add_political_callout(fig, plat_council, plat_leg, plat_cong)
-
+    add_political_callout(fig, label, plat_council, plat_leg, plat_cong)
     cb = create_colour_bar(fig, palette, 10, 90)
     layout = create_layout(sch_choice, leg_choice, fig, cb)
 
@@ -159,6 +166,7 @@ def main():
     save(layout, outfn)
 
 
+import frmplots.plotstyle as fps 
 def create_layout(sch_choice, leg_choice, fig, cb):
 
     template = "<FONT size='12'>%s</FONT>"
@@ -174,8 +182,13 @@ def create_layout(sch_choice, leg_choice, fig, cb):
     )
 
     controls = row(sch, leg, sizing_mode="stretch_width")
-    note = Div(text="Note: School catchment areas typically overlap with two or more political districts")
-    layout = column(controls, row(fig, cb), note)
+    note = Div(text="<P>Note: School catchment areas typically overlap with two or more political districts</P>")
+    
+    watermark = fps.create_watermark_text(0)
+    wmark = Div(text=watermark)
+
+    layout = column(controls, row(fig, cb), note, wmark)
+
     return layout
 
 
@@ -297,18 +310,10 @@ def create_colour_bar(fig, palette, low, high):
     return color_bar_plot
 
 
-def add_political_callout(fig, plat_council, plat_leg, plat_cong):
+def add_political_callout(fig, label, plat_council, plat_leg, plat_cong):
     """Add a label to indicate the political district under the mouse"""
 
     text = ""
-    label = Label(
-        x=400, y=740,
-        x_units='screen', y_units='screen', 
-        text=text, 
-        text_font_size="24px",
-        background_fill_color='#EEEEDD'
-    )
- 
     callback = CustomJS(
         args=dict(
             label=label,
@@ -341,6 +346,9 @@ def add_political_callout(fig, plat_council, plat_leg, plat_cong):
                 var index = indices[0];
                 var text = cds.data['DistrictId'][index];
                 label.text= 'District ' + text;
+                label.x = cds.data['cent_lng'][index];
+                label.y = cds.data['cent_lat'][index];
+                console.log(label.x, label.y)
             }
         """
     )
